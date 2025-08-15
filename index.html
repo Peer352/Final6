@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Final Exam — Modules 1–7</title>
+<style>
+  :root{
+    --ok:#11a36a; --bad:#d83a3a; --ink:#0f172a; --muted:#64748b; --bg:#f8fafc;
+    --card:#ffffff; --accent:#2563eb; --warn:#b45309;
+  }
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .container{max-width:1000px;margin:0 auto;padding:24px}
+  h1,h2,h3{margin:0 0 12px}
+  .card{background:var(--card);border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 10px 20px rgba(2,6,23,.06);padding:20px;margin:16px 0}
+  .muted{color:var(--muted)}
+  .btn{appearance:none;border:0;border-radius:999px;padding:12px 18px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff;box-shadow:0 6px 14px rgba(37,99,235,.22);transition:transform .06s ease}
+  .btn:active{transform:translateY(1px)}
+  .btn.secondary{background:#e2e8f0;color:#111827;box-shadow:none}
+  .btn.warn{background:var(--warn);color:#fff}
+  .btn.ghost{background:transparent;border:1px solid #cbd5e1;color:#0f172a}
+  .pill{display:inline-block;background:#eef2ff;color:#3730a3;border-radius:999px;padding:4px 10px;font-size:12px;margin-left:8px}
+  .gate{position:fixed;inset:0;background:linear-gradient(120deg,#0ea5e9 0%,#9333ea 100%);display:flex;align-items:center;justify-content:center;z-index:50;color:#fff}
+  .gate .panel{max-width:720px;padding:28px;border-radius:20px;background:rgba(255,255,255,.1);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.3)}
+  .timer{position:fixed;right:16px;top:16px;z-index:40;background:#111827;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 8px 18px rgba(0,0,0,.25);font-variant-numeric:tabular-nums}
+  .q{padding:16px;border:1px solid #e5e7eb;border-radius:14px;margin:12px 0;background:#fff;position:relative}
+  .q h4{margin:0 0 8px}
+  .q .hint{display:none;margin-top:8px;font-size:14px;color:#334155;background:#f1f5f9;border:1px dashed #cbd5e1;padding:8px;border-radius:8px}
+  .q.wrong{border-color:var(--bad);background:#fff1f1}
+  .q.correct{border-color:var(--ok);background:#f0fff7}
+  .q .choices label{display:block;margin:6px 0;padding:8px;border-radius:8px;border:1px solid #e5e7eb;cursor:pointer}
+  .q .choices input{margin-right:8px}
+  .q .sc-actions{display:none;margin-top:8px;gap:8px}
+  .q .sc-actions .btn{padding:8px 12px;font-size:14px}
+  .q .manual-score{margin-top:8px}
+  .q .manual-score input{width:60px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px}
+  .footer-actions{display:flex;gap:12px;justify-content:flex-end;margin:24px 0}
+  .badge{font-size:12px;padding:2px 8px;border-radius:999px;background:#f1f5f9;border:1px solid #e2e8f0;margin-left:6px}
+  /* Fireworks */
+  .fireworks{pointer-events:none;position:fixed;inset:0;display:none;z-index:60}
+  .spark{position:absolute;width:6px;height:6px;border-radius:50%;background:#fff;animation:pop .5s ease-out forwards}
+  @keyframes pop{
+    0%{transform:translate(0,0) scale(0);opacity:1}
+    100%{transform:translate(var(--tx),var(--ty)) scale(1.3);opacity:0}
+  }
+  /* Whammy walker */
+  .whammy{position:absolute;left:-120px;top:-8px;font-weight:800;color:#991b1b;background:#fecaca;border:2px solid #ef4444;border-radius:10px;padding:6px 10px;animation:walk 1.1s linear both}
+  @keyframes walk{to{left:calc(100% - 80px)}}
+  /* Sticky story header when visible */
+  .story{position:sticky;top:64px;background:#fffbeb;border:1px solid #fde68a}
+</style>
+</head>
+<body>
+<div class="timer" id="timer" aria-live="polite" style="display:none">50:00</div>
+
+<div class="gate" id="gate">
+  <div class="panel">
+    <h1 style="margin-bottom:8px">Final Exam (Modules 1–7)</h1>
+    <p class="muted" style="margin-top:0">This exam includes 16 True/False, 56 Multiple Choice, and 2 Short Answer questions. Time limit: 50 minutes.</p>
+    <ul>
+      <li>When you click <strong>I am ready</strong>, the exam will appear and the timer will start.</li>
+      <li>Wrong answers get a <strong>second chance</strong> worth <strong>half credit</strong>. Hints are available.</li>
+      <li>Short answers require manual scoring (1–10 points each).</li>
+    </ul>
+    <button class="btn" id="startBtn">I am ready</button>
+    <span class="pill">Timer starts on click</span>
+  </div>
+</div>
+
+<div class="fireworks" id="fw"></div>
+
+<div class="container" id="app" style="display:none">
+  <div class="card story" id="storyCard" aria-live="polite">
+    <h2>Read this short story (for Q73–Q74)</h2>
+    <p><em>“The Archivist’s Dilemma.”</em></p>
+    <p>
+      In the windowless stacks of the Metropolitan Repository, Dr. Anaya Velásquez traced the provenance of a centuries‑old charter whose ink had outlived three revolutions and two empires. The document’s margins were crowded with palimpsests—erasures upon erasures—that betrayed an invisible history of revision. A startup had approached the museum with an offer to digitize the collection using a proprietary “restoration model” trained on unpublished manuscripts; in exchange, they demanded exclusive rights to the resulting embeddings and any derivative inferences. The museum’s board, dazzled by promises of universal access, proposed a memorandum allowing the vendor to fine‑tune on anonymized scans and to watermark the outputs with the museum’s seal. Anaya, custodian of a tradition suspicious of miracles, wondered whether preserving knowledge required relinquishing control of its shadow.
+    </p>
+    <p>
+      That night, a burst pipe flooded the sub‑basement, threatening the charter. Anaya made a triage call: evacuate the damaged folios first, leave routine acquisitions to volunteers, and reroute power to stabilize the climate systems. When the vendor’s engineer arrived unannounced with drones and a “rapid‑capture waiver,” Anaya refused access, citing a clause that prohibited unsupervised reproduction. The engineer hinted that delay would void a performance bonus and suggested that, with implied authority, she could sign on the museum’s behalf. As volunteers waded across the mirrored floor, Anaya invoked the equal dignity rule for written delegations and documented her decision. In the morning, the board praised the saved charter yet questioned the lost bonus. Anaya simply pointed to the watermark on the flood’s surface: a ripple that looked like a signature, and proved nothing at all.
+    </p>
+  </div>
+
+  <div id="questions"></div>
+
+  <div class="card footer-actions">
+    <button class="btn" id="scoreBtn">Score</button>
+    <button class="btn secondary" id="rescoreBtn" disabled>Rescore</button>
+    <span id="result" style="align-self:center;margin-left:auto;font-weight:700"></span>
+  </div>
+</div>
+
+<script>
+/* ---------------- Configuration ---------------- */
+const DURATION_SECONDS = 50 * 60; // 50 minutes
+// Scoring weights
+const POINTS_TF = 1;
+const POINTS_MC = 2;
+const POINTS_SA_MAX = 10; // each SA lets user choose 1-10
+// Short hints are tied to module content
+
+/* ---------------- Question Bank ---------------- */
+// 16 True/False (Modules 1–7)
+const tf = [
+  {id:'T1', type:'tf', prompt:'Case law (common law) develops from judicial decisions and precedent.', answer:true, hint:'Module 1: Stare decisis and judge‑made law.'},
+  {id:'T2', type:'tf', prompt:'Venue determines which sovereign has the power to hear a case.', answer:false, hint:'Module 1: That’s jurisdiction; venue is geographic location.'},
+  {id:'T3', type:'tf', prompt:'Mediation decisions are binding on the parties by default.', answer:false, hint:'Module 1: Mediation is nonbinding.'},
+  {id:'T4', type:'tf', prompt:'Corporate political speech is protected under the First Amendment.', answer:true, hint:'Module 1: Constitutional concepts.'},
+  {id:'T5', type:'tf', prompt:'An act may be legal but still unethical.', answer:true, hint:'Module 2: Law sets a moral minimum.'},
+  {id:'T6', type:'tf', prompt:'Utilitarianism focuses on duties rather than outcomes.', answer:false, hint:'Module 2: That’s deontology; utilitarianism is outcomes.'},
+  {id:'T7', type:'tf', prompt:'Strict liability requires proof of fault.', answer:false, hint:'Module 2: No fault required.'},
+  {id:'T8', type:'tf', prompt:'A counteroffer terminates the original offer.', answer:true, hint:'Module 3: Offer & acceptance.'},
+  {id:'T9', type:'tf', prompt:'A promise to perform an existing legal duty is valid consideration.', answer:false, hint:'Module 3: Preexisting duty rule.'},
+  {id:'T10', type:'tf', prompt:'Minors’ contracts are voidable by the minor.', answer:true, hint:'Module 4: Capacity—minors.'},
+  {id:'T11', type:'tf', prompt:'Unconscionability can be procedural or substantive.', answer:true, hint:'Module 4: Both types exist.'},
+  {id:'T12', type:'tf', prompt:'An assignment transfers duties; a delegation transfers rights.', answer:false, hint:'Module 4: Swap these—assign rights, delegate duties.'},
+  {id:'T13', type:'tf', prompt:'Chapter 7 is liquidation bankruptcy.', answer:true, hint:'Module 5: Types of bankruptcy.'},
+  {id:'T14', type:'tf', prompt:'A BFOQ defense can be based on race for authenticity.', answer:false, hint:'Module 6: Race is never a valid BFOQ.'},
+  {id:'T15', type:'tf', prompt:'Shareholders generally have limited liability for corporate debts.', answer:true, hint:'Module 7: Liability protections.'},
+  {id:'T16', type:'tf', prompt:'Piercing the corporate veil is more likely when formalities are ignored.', answer:true, hint:'Module 7: Commingling, undercapitalization, etc.'},
+];
+
+// 56 Multiple Choice (3 options each, one correct). Keep prompts concise.
+const mc = [
+  // Module 1
+  {id:'M1',  type:'mc', prompt:'Which is the supreme law of the land?', choices:['Statutory law','Constitutional law','Administrative rules'], answer:1, hint:'Constitution controls.'},
+  {id:'M2',  type:'mc', prompt:'Personal jurisdiction concerns:', choices:['Power over parties','Proper appellate court','Geographic venue only'], answer:0, hint:'Power over parties.'},
+  {id:'M3',  type:'mc', prompt:'ADR that is typically binding:', choices:['Negotiation','Mediation','Arbitration'], answer:2, hint:'Arbitration awards often bind.'},
+  {id:'M4',  type:'mc', prompt:'Appellate courts primarily review:', choices:['Witness credibility','Legal errors','New evidence'], answer:1, hint:'They don’t retry facts.'},
+
+  // Module 2
+  {id:'M5',  type:'mc', prompt:'Duty‑based ethics is most associated with:', choices:['Kant','Bentham','Mill'], answer:0, hint:'Categorical imperative.'},
+  {id:'M6',  type:'mc', prompt:'Best defense in a foul‑ball injury case:', choices:['Assumption of risk','Strict liability','Res ipsa loquitur'], answer:0, hint:'Spectator risk.'},
+  {id:'M7',  type:'mc', prompt:'Elements of negligence include all EXCEPT:', choices:['Duty','Breach','Punitive damages'], answer:2, hint:'Damages ≠ automatically punitive.'},
+  {id:'M8',  type:'mc', prompt:'FCPA primarily targets:', choices:['Domestic price‑fixing','Bribes to foreign officials','Insider trading'], answer:1, hint:'Foreign Corrupt Practices Act.'},
+
+  // Module 3
+  {id:'M9',  type:'mc', prompt:'A unilateral contract is:', choices:['Promise for performance','Promise for promise','Executed contract'], answer:0, hint:'One side promises, other performs.'},
+  {id:'M10', type:'mc', prompt:'Promissory estoppel requires:', choices:['Clear promise + reliance','Consideration + capacity','Legality + writing'], answer:0, hint:'Reliance substitutes for consideration.'},
+  {id:'M11', type:'mc', prompt:'Trademark dilution protects against:', choices:['Only confusion','Blurring/tarnishment','Patent misuse'], answer:1, hint:'Even without confusion.'},
+  {id:'M12', type:'mc', prompt:'Mailbox rule generally makes acceptance effective when:', choices:['Received','Sent','Read'], answer:1, hint:'Upon dispatch.'},
+
+  // Module 4 (Capacity/Legality/Performance/Remedies)
+  {id:'M13', type:'mc', prompt:'A contract with an intoxicated person is voidable if:', choices:['Other party knew of incapacity','It is in writing','It benefits both parties'], answer:0, hint:'Knowledge of impairment matters.'},
+  {id:'M14', type:'mc', prompt:'Illegal contracts are:', choices:['Void','Voidable','Enforceable with waiver'], answer:0, hint:'Unenforceable.'},
+  {id:'M15', type:'mc', prompt:'Noncompetes are enforceable if:', choices:['Always, anywhere','Reasonable time/scope','Never'], answer:1, hint:'Legitimate interests + reasonableness.'},
+  {id:'M16', type:'mc', prompt:'Delegations generally:', choices:['Release delegator automatically','Keep delegator liable absent novation','Are barred for payment duties'], answer:1, hint:'Need novation to release.'},
+  {id:'M17', type:'mc', prompt:'Intended beneficiaries:', choices:['May enforce','Never enforce','Only if incidental'], answer:0, hint:'Intended ≠ incidental.'},
+  {id:'M18', type:'mc', prompt:'Condition precedent example:', choices:['Maintain license after hiring','Financing required before closing','Simultaneous exchange'], answer:1, hint:'Must occur first.'},
+  {id:'M19', type:'mc', prompt:'Substantial performance:', choices:['Excuses other party’s duty','Requires perfection','Allows damages for minor deviations'], answer:2, hint:'Must still perform + damages.'},
+  {id:'M20', type:'mc', prompt:'Anticipatory repudiation occurs when:', choices:['After full performance','Before performance due','Only in UCC contracts'], answer:1, hint:'Unequivocal refusal in advance.'},
+  {id:'M21', type:'mc', prompt:'Liquidated damages enforceable when:', choices:['Amount is penalty','Difficult to estimate + reasonable','Always in consumer deals'], answer:1, hint:'No penalties.'},
+  {id:'M22', type:'mc', prompt:'Statute of Frauds requires writing for:', choices:['Services $300','Land sale','Goods $400'], answer:1, hint:'Plus UCC goods ≥ $500.'},
+  {id:'M23', type:'mc', prompt:'Quasi‑contract recovery is based on:', choices:['Punishment','Quantum meruit','Specific performance'], answer:1, hint:'Fair value of benefit.'},
+
+  // Module 5 (Secured Transactions/Bankruptcy/Agency)
+  {id:'M24', type:'mc', prompt:'Attachment requires all EXCEPT:', choices:['Security agreement or possession','Value given','Public filing'], answer:2, hint:'Filing is for perfection, not attachment.'},
+  {id:'M25', type:'mc', prompt:'Automatic perfection most likely for:', choices:['PMSI in consumer goods','Inventory consignments','Real property fixtures'], answer:0, hint:'Purchase‑money, consumer goods.'},
+  {id:'M26', type:'mc', prompt:'In Chapter 7, who is paid first?', choices:['Unsecured pro rata','Secured up to collateral','Equity holders'], answer:1, hint:'Secured claims first from collateral.'},
+  {id:'M27', type:'mc', prompt:'Debt not dischargeable:', choices:['Recent taxes','Ordinary credit cards','Tort negligence'], answer:0, hint:'Recent tax obligations survive.'},
+  {id:'M28', type:'mc', prompt:'Surety vs guarantor:', choices:['Surety secondarily liable','Guarantor primarily liable','Surety is primarily liable'], answer:2, hint:'Surety = primary.'},
+  {id:'M29', type:'mc', prompt:'Agency core feature:', choices:['Consideration','Consent + control','Written contract'], answer:1, hint:'Can be unpaid; control matters.'},
+  {id:'M30', type:'mc', prompt:'Respondeat superior makes principal liable for:', choices:['Agent’s negligence in scope','Agent’s frolics outside scope','Independent contractor acts always'], answer:0, hint:'Detour vs frolic.'},
+  {id:'M31', type:'mc', prompt:'Equal dignity rule:', choices:['If underlying K must be written, agent’s authority must be written','All agency must be notarized','Oral authority suffices for land sale'], answer:0, hint:'Writing tracks the underlying form.'},
+
+  // Module 6 (Employment/Immigration/Entities basics)
+  {id:'M32', type:'mc', prompt:'Primary distinction employee vs contractor:', choices:['Salary amount','Degree of control','Tax bracket'], answer:1, hint:'Control test.'},
+  {id:'M33', type:'mc', prompt:'Title VII covers:', choices:['Race, color, religion, sex, national origin','Age 30+','Disability only'], answer:0, hint:'Core protected classes.'},
+  {id:'M34', type:'mc', prompt:'ADA requires:', choices:['Quotas','Reasonable accommodation','BFOQ by disability'], answer:1, hint:'Unless undue hardship.'},
+  {id:'M35', type:'mc', prompt:'IRCA requires employers to:', choices:['Sponsor H‑1B for all','Complete Form I‑9','Ignore ICE inspections'], answer:1, hint:'Identity + work authorization.'},
+  {id:'M36', type:'mc', prompt:'Employment at will allows termination except when:', choices:['Discriminatory/illegal','Manager requests it','Policy is unwritten'], answer:0, hint:'Public policy and statutes.'},
+  {id:'M37', type:'mc', prompt:'LLC combines:', choices:['Unlimited liability + pass‑through tax','Limited liability + tax flexibility','Double taxation + limited liability'], answer:1, hint:'Hybrid benefits.'},
+  {id:'M38', type:'mc', prompt:'General partners have:', choices:['Limited liability','No management rights','Joint and several liability'], answer:2, hint:'Personal exposure for debts.'},
+  {id:'M39', type:'mc', prompt:'Wrongful franchise termination often requires:', choices:['No notice needed','Good cause + cure period','Automatic buyout'], answer:1, hint:'Notice and opportunity to cure.'},
+
+  // Module 7 (Corporations)
+  {id:'M40', type:'mc', prompt:'A foreign corporation is incorporated:', choices:['In another state','Abroad','Locally'], answer:0, hint:'Foreign = other U.S. state.'},
+  {id:'M41', type:'mc', prompt:'Articles of incorporation typically include:', choices:['Bylaws content only','Registered agent + share info','Daily schedules'], answer:1, hint:'Core filing details.'},
+  {id:'M42', type:'mc', prompt:'Business Judgment Rule protects:', choices:['Self‑dealing decisions','Informed good‑faith decisions','Gross negligence'], answer:1, hint:'Care without conflicts.'},
+  {id:'M43', type:'mc', prompt:'Piercing veil more likely when:', choices:['Observing formalities','Undercapitalized + commingling','High profits'], answer:1, hint:'Abuse of entity form.'},
+  {id:'M44', type:'mc', prompt:'Shareholder derivative suit:', choices:['On own behalf','On corporation’s behalf','Against state only'], answer:1, hint:'Recovery to corp.'},
+  {id:'M45', type:'mc', prompt:'Preemptive rights give:', choices:['First chance at new shares','Guaranteed dividends','Board seats'], answer:0, hint:'Maintain proportion.'},
+  {id:'M46', type:'mc', prompt:'Ultra vires acts are:', choices:['Within corporate powers','Beyond authority','Board-approved always'], answer:1, hint:'Can be enjoined.'},
+
+  // Mixed scenario/definitions to reach 56
+  {id:'M47', type:'mc', prompt:'Specific performance most proper for:', choices:['Unique goods/land','Personal services','Money debts'], answer:0, hint:'Uniqueness matters.'},
+  {id:'M48', type:'mc', prompt:'Mechanic’s lien attaches to:', choices:['Personal property only','Real estate for improvements','Wages'], answer:1, hint:'Improvements to land.'},
+  {id:'M49', type:'mc', prompt:'Constructive discharge means:', choices:['Quit counts as fired','Firing counts as quit','Layoff is promotion'], answer:0, hint:'Conditions intolerable.'},
+  {id:'M50', type:'mc', prompt:'Trade secret protection requires:', choices:['USPTO filing','Reasonable secrecy measures','Public disclosure'], answer:1, hint:'Protect confidentiality.'},
+  {id:'M51', type:'mc', prompt:'Trademark infringement test:', choices:['Novelty','Likelihood of confusion','Enablement'], answer:1, hint:'Consumer confusion.'},
+  {id:'M52', type:'mc', prompt:'Comparative negligence:', choices:['Bars recovery entirely for any fault','Reduces recovery by plaintiff fault','Imposes strict liability'], answer:1, hint:'Apportion fault.'},
+  {id:'M53', type:'mc', prompt:'Illusory promise:', choices:['Enforceable','Not a real commitment','Always in writing'], answer:1, hint:'Sole discretion terms.'},
+  {id:'M54', type:'mc', prompt:'Novation:', choices:['Assigns rights only','Substitutes a new party','Rescinds consideration'], answer:1, hint:'Releases original obligor.'},
+  {id:'M55', type:'mc', prompt:'Arbitration clause unconscionable when:', choices:['Fair costs, mutual','Overly one‑sided + hidden','Signed openly'], answer:1, hint:'Procedural + substantive issues.'},
+  {id:'M56', type:'mc', prompt:'Mailing an acceptance generally forms a contract under:', choices:['Objective theory','Mailbox rule','Parol evidence'], answer:1, hint:'Effective on dispatch.'},
+];
+
+// 2 Short Answer tied to story
+const sa = [
+  {id:'S1', type:'sa', prompt:'(Story) Identify ONE legal doctrine Dr. Velásquez implicitly relies on to refuse unsupervised reproduction by the vendor. Explain briefly (1–2 sentences).', hint:'Consider agency authority formalities and museum policy constraints.'},
+  {id:'S2', type:'sa', prompt:'(Story) In 2–3 sentences, evaluate the board’s “exclusive rights to embeddings” proposal under IP and public‑policy concerns.', hint:'Think about licenses, derivative data, and dilution/misappropriation risks.'},
+];
+
+// Build a single bank
+const bank = [...tf, ...mc, ...sa];
+
+/* ---------------- Render ---------------- */
+const qsEl = document.getElementById('questions');
+function render(){
+  bank.forEach((q, idx)=>{
+    const card = document.createElement('div');
+    card.className = 'q';
+    card.id = 'q_' + q.id;
+
+    const head = document.createElement('h4');
+    head.innerHTML = `Q${idx+1}. ${q.prompt} <span class="badge">${q.type.toUpperCase()}</span>`;
+    card.appendChild(head);
+
+    const meta = document.createElement('div');
+    meta.className='muted';
+    if(q.type==='tf') meta.textContent = `Worth ${POINTS_TF} pt`;
+    else if(q.type==='mc') meta.textContent = `Worth ${POINTS_MC} pts`;
+    else meta.textContent = `Manual score (1–${POINTS_SA_MAX})`;
+    card.appendChild(meta);
+
+    if(q.type==='tf' || q.type==='mc'){
+      const choices = document.createElement('div'); choices.className='choices';
+      let opts = [];
+      if(q.type==='tf'){
+        opts = ['True','False'];
+      }else{
+        opts = q.choices;
+      }
+      opts.forEach((opt, i)=>{
+        const id = `${q.id}_${i}`;
+        const lab = document.createElement('label');
+        const radio = document.createElement('input');
+        radio.type='radio'; radio.name=q.id; radio.value=i; radio.id=id;
+        lab.appendChild(radio);
+        const span = document.createElement('span'); span.textContent = opt;
+        lab.appendChild(span);
+        choices.appendChild(lab);
+      });
+      card.appendChild(choices);
+
+      // second-chance section
+      const sc = document.createElement('div');
+      sc.className='sc-actions';
+      sc.innerHTML = `
+        <button class="btn ghost" data-hint>Hint</button>
+        <button class="btn warn" data-sc>Second Chance</button>
+      `;
+      card.appendChild(sc);
+
+      const hint = document.createElement('div');
+      hint.className='hint'; hint.textContent = 'Hint: ' + (q.hint||'Consider the module concepts.');
+      card.appendChild(hint);
+
+      // listeners
+      choices.addEventListener('change', (e)=>{
+        if(!e.target.matches('input[type=radio]')) return;
+        gradeSingle(q, card, false);
+      });
+
+      sc.querySelector('[data-hint]').addEventListener('click', ()=>{
+        hint.style.display = hint.style.display==='block' ? 'none' : 'block';
+      });
+      sc.querySelector('[data-sc]').addEventListener('click', ()=>{
+        // enable second-chance: uncheck everything for a fresh pick
+        const rads = choices.querySelectorAll('input'); rads.forEach(r=>r.checked=false);
+        card.dataset.second='1'; // flag
+        card.classList.remove('wrong');
+        hint.style.display='none';
+      });
+
+    } else if(q.type==='sa'){
+      const ta = document.createElement('textarea');
+      ta.rows=4; ta.style.width='100%'; ta.placeholder='Write your response here...';
+      card.appendChild(ta);
+
+      const manual = document.createElement('div');
+      manual.className='manual-score';
+      manual.innerHTML = `
+        <label>Score (1–${POINTS_SA_MAX}): <input type="number" min="0" max="${POINTS_SA_MAX}" step="1" value="0" data-sa-score /></label>
+        <button class="btn ghost" data-show-hint>Hint</button>
+      `;
+      card.appendChild(manual);
+
+      const hint = document.createElement('div');
+      hint.className='hint'; hint.textContent = 'Hint: ' + (q.hint||'Address rule + application.');
+      card.appendChild(hint);
+
+      manual.querySelector('[data-show-hint]').addEventListener('click', ()=>{
+        hint.style.display = hint.style.display==='block' ? 'none' : 'block';
+      });
+    }
+
+    qsEl.appendChild(card);
+  });
+}
+
+/* ---------------- Timer ---------------- */
+let remaining = DURATION_SECONDS;
+let tHandle = null;
+function startTimer(){
+  const t = document.getElementById('timer');
+  t.style.display='block';
+  const tick = ()=>{
+    if(remaining<=0){
+      clearInterval(tHandle);
+      document.querySelectorAll('input,textarea,button').forEach(el=>{
+        if(!el.closest('.gate')) el.disabled=true;
+      });
+      t.textContent = '00:00';
+      alert('Time is up. Your exam has been locked.');
+      return;
+    }
+    remaining--;
+    const m = Math.floor(remaining/60).toString().padStart(2,'0');
+    const s = (remaining%60).toString().padStart(2,'0');
+    t.textContent = `${m}:${s}`;
+  };
+  tHandle = setInterval(tick, 1000);
+}
+
+/* ---------------- Effects ---------------- */
+function fireworks(){
+  const fw = document.getElementById('fw');
+  fw.innerHTML='';
+  fw.style.display='block';
+  const cx = Math.random()*window.innerWidth;
+  const cy = Math.random()*window.innerHeight*0.6 + 40;
+  for(let i=0;i<24;i++){
+    const sp = document.createElement('div');
+    sp.className='spark';
+    const ang = (Math.PI*2)*i/24; const r = 80 + Math.random()*80;
+    sp.style.left = cx+'px'; sp.style.top = cy+'px';
+    sp.style.setProperty('--tx', (Math.cos(ang)*r)+'px');
+    sp.style.setProperty('--ty', (Math.sin(ang)*r)+'px');
+    fw.appendChild(sp);
+  }
+  setTimeout(()=>{ fw.style.display='none'; }, 500);
+}
+function whammy(qCard){
+  // add walker once per wrong event
+  const w = document.createElement('div');
+  w.className='whammy';
+  w.textContent='WHAMMY!';
+  qCard.appendChild(w);
+  setTimeout(()=>{ w.remove(); }, 1200);
+}
+
+/* ---------------- Grading ---------------- */
+function isCorrect(q, pickIndex){
+  if(q.type==='tf'){
+    return (q.answer===true && pickIndex===0) || (q.answer===false && pickIndex===1);
+  }
+  if(q.type==='mc'){
+    return pickIndex===q.answer;
+  }
+  return false;
+}
+
+function gradeSingle(q, card, isRescore){
+  if(q.type==='sa') return;
+
+  const chosen = card.querySelector('input[type=radio]:checked');
+  if(!chosen) return;
+  const pick = +chosen.value;
+
+  // First attempt vs second-chance
+  const onSecond = card.dataset.second==='1';
+
+  const ok = isCorrect(q, pick);
+  if(ok){
+    card.classList.add('correct'); card.classList.remove('wrong');
+    fireworks();
+    // lock radios
+    card.querySelectorAll('input[type=radio]').forEach(r=>r.disabled=true);
+    // hide second-chance UI if showing
+    const sc = card.querySelector('.sc-actions'); if(sc) sc.style.display='none';
+    card.dataset.score = (q.type==='tf' ? POINTS_TF : POINTS_MC) * (onSecond ? 0.5 : 1);
+  }else{
+    card.classList.add('wrong'); card.classList.remove('correct');
+    whammy(card);
+    const sc = card.querySelector('.sc-actions'); if(sc){
+      sc.style.display='flex';
+    }
+    // on first wrong, allow second-chance toggle; keep radios enabled
+    if(onSecond){
+      // second wrong → lock and 0 points
+      card.querySelectorAll('input[type=radio]').forEach(r=>r.disabled=true);
+      card.dataset.score = 0;
+      const sc = card.querySelector('.sc-actions'); if(sc) sc.style.display='none';
+    }else{
+      // mark that second-chance is available (not yet activated until they click Second Chance)
+      card.dataset.score = 0; // provisional
+    }
+  }
+}
+
+function gradeAll(){
+  // compute objective
+  bank.forEach(q=>{
+    const card = document.getElementById('q_'+q.id);
+    if(q.type==='tf' || q.type==='mc'){
+      const chosen = card.querySelector('input[type=radio]:checked');
+      if(chosen){
+        gradeSingle(q, card, true);
+      }else{
+        // no answer → zero
+        card.dataset.score = 0;
+      }
+    }else{
+      // SA manual
+      const inp = card.querySelector('[data-sa-score]');
+      let v = parseInt(inp.value||'0',10);
+      if(Number.isNaN(v)) v=0;
+      v = Math.min(Math.max(v,0), POINTS_SA_MAX);
+      inp.value = v;
+      card.dataset.score = v;
+    }
+  });
+
+  // sum
+  let earned = 0, possible = 0;
+  tf.forEach(()=> possible += POINTS_TF);
+  mc.forEach(()=> possible += POINTS_MC);
+  sa.forEach(()=> possible += POINTS_SA_MAX);
+
+  document.querySelectorAll('.q').forEach(qc=>{
+    const s = parseFloat(qc.dataset.score||'0'); if(!Number.isNaN(s)) earned += s;
+  });
+  const pct = (earned/possible)*100;
+  const res = document.getElementById('result');
+  res.textContent = `Score: ${earned.toFixed(1)} / ${possible} (${pct.toFixed(1)}%)`;
+  document.getElementById('rescoreBtn').disabled = false;
+}
+
+/* ---------------- Boot ---------------- */
+render();
+
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  document.getElementById('gate').style.display='none';
+  document.getElementById('app').style.display='block';
+  startTimer();
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+document.getElementById('scoreBtn').addEventListener('click', gradeAll);
+document.getElementById('rescoreBtn').addEventListener('click', gradeAll);
+
+// Accessibility: reveal second-chance state when user clicks the SC button
+document.addEventListener('click', (e)=>{
+  if(e.target && e.target.matches('[data-sc]')){
+    const card = e.target.closest('.q');
+    if(card){
+      card.dataset.second='1';
+      // prompt the user to choose again
+      alert('Second chance activated (worth half credit). Choose again.');
+    }
+  }
+});
+</script>
+</body>
+</html>
